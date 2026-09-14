@@ -194,10 +194,9 @@ def _scrape_metrics(test_uuid, start, end, cfg):
 
     profile_list = [p.strip() for p in cfg["profiles"].split(",") if p.strip()]
     
-    # kube-burner --metrics-profile only accepts relative filenames (not absolute paths).
+    # kube-burner --metrics-profile  accepts relative filenames .
     # Absolute paths trigger an HTTP GET → "unsupported protocol scheme".
-    # Copy profiles to results_dir (writable) so kube-burner can find them by filename,
-    # and also write its own log file there.
+
     for profile_file in profile_list:
         src = os.path.join(PROFILES_DIR, profile_file)
         if os.path.exists(src):
