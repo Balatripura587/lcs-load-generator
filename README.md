@@ -81,6 +81,57 @@ Set `PROMETHEUS_BACKEND=thanos` on the load generator Job/container.
 | `PROMETHEUS_BACKEND` env | Not needed (default) | `thanos` |
 | Config file | `config/monitoring/platform-prometheus.yaml` | `config/monitoring/user-workload-thanos.yaml` |
 
+## Profiling Integration (Optional)
+
+LCS supports two optional profiling tools for deeper analysis during load tests. Both are **disabled by default** and add **zero overhead** when not configured.
+
+Pyroscope and Memray are **dev dependencies** in the [lightspeed-stack](https://github.com/lightspeed-core/lightspeed-stack) source code — they are not included in a default LCS install. Install them when building or running LCS from source (e.g. `pip install -e ".[dev]"` or the equivalent in the LCS `pyproject.toml`) before enabling either tool.
+
+### Pyroscope — CPU Flamegraphs
+
+Continuous CPU profiling suitable for use alongside performance measurement. When enabled, expect roughly **3–5% overhead**.
+
+**Deploy the Pyroscope server:**
+
+```bash
+oc new-project pyroscope
+oc apply -f <pyroscope-server.yaml>   # grafana/pyroscope:latest
+```
+
+**Enable on LCS** by setting an environment variable on the deployment (no LCS code changes required):
+
+```bash
+oc set env deployment/lcs \
+  PYROSCOPE_SERVER_ADDRESS=http://pyroscope.pyroscope.svc:4040 \
+  --containers=lcs -n openshift-lcs
+```
+
+**What you get:** Continuous CPU flamegraphs correlated with the load test time window. Export as a pprof binary or HTML flamegraph.
+
+**How it works:** LCS reads `PYROSCOPE_SERVER_ADDRESS` at startup (`src/observability/profiling.py`). When set, a background thread samples call stacks ~100×/sec and pushes profiles to the Pyroscope server every 10s.
+
+### Memray — Memory Flamegraphs
+
+Full heap allocation tracing for a dedicated profiling run. Use **separate sessions** from performance measurement — not alongside throughput/latency benchmarks. Expect roughly **50–65% overhead**.
+
+**Enable on LCS** by overriding the container command (no LCS code changes required):
+
+```bash
+oc patch deployment/lcs -n openshift-lcs --type=json -p='[{
+  "op": "add",
+  "path": "/spec/template/spec/containers/0/command",
+  "value": ["/app-root/.venv/bin/python", "-m", "memray", "run",
+             "--force", "-o", "/mnt/profiling/memray-lcs.bin",
+             "src/lightspeed_stack.py"]
+}]'
+```
+
+**What you get:** A full heap allocation trace for the entire run. Generate a flamegraph locally with:
+
+```bash
+memray flamegraph memray-lcs.bin
+```
+
 ## Installation
 
 ```bash
