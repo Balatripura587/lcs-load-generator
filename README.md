@@ -13,7 +13,7 @@ Supported endpoints:
 | `responses` | `POST /v1/responses` `stream=false` | OpenAI-compatible Responses API |
 | `streaming_responses` | `POST /v1/responses` `stream=true` | OpenAI-compatible SSE, TTFT tracked |
 
-Works with both **library mode** and **server mode** LCS deployments. The load generator only needs the LCS HTTP URL (`LCS_HOST`) — set it to whichever URL LCS is listening on
+Works with **library mode** LCS deployments. The load generator only needs the LCS HTTP URL (`LCS_HOST`) — set it to whichever URL LCS is listening on
 
 ## Prerequisites
 
